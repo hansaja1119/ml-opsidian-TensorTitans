@@ -1,5 +1,5 @@
 # ML Opsidian Genesis: Flood Risk Prediction
-**Current Best Leaderboard Score:** `0.38163` (V17 Ultimate Blend)
+**Current Best Leaderboard Score:** `0.38149` (V18 Titan)
 
 ## 1. Problem Statement
 Cyclone events and rapid environmental changes frequently turn normal situations into severe flood disasters in Sri Lanka. Despite having historical records, this data is rarely used to compute actionable long-term risk intelligence for habitability. 
@@ -77,3 +77,23 @@ Through rigorous testing, we found that exactly **115 features** is the sweet sp
   - **Deep Models**: CatBoost (8,10,12) and LGB (255 leaves) to track high-variance fluctuations.
   - **Robust Meta-Model**: `HuberRegressor` to fuse them securely without generating outliers.
   - **Final Action**: Blended V17 (30%) + V15 (40%) + V11 (30%) to create the `submission_v17_genesis_ultimate.csv` file, resulting in the massive leap to `0.38163`.
+
+### V18 Titan: The Scale Champion
+- **Score**: `0.38149` (Current Champion) | **OOF RMSE**: `0.23388` | **R2**: `0.0405`
+- **Insights**: Proved that sheer scale and diversity is the winning formula for this metric.
+  - **36 distinct models**: CatBoost (depth 4,6,8,10,12), LightGBM (MAE, RMSE, Deep-255, DART), XGBoost (SquaredError, PseudoHuber), HistGradientBoosting.
+  - **3 random seeds per model**: Seed averaging (42, 142, 242) neutralized initialization variance.
+  - **20-Fold CV with checkpointing**: Allowed crash-safe multi-hour training.
+  - **Raw target prediction**: Models predict `flood_risk_score` directly (no transformation).
+  - **HuberRegressor (ε=1.35) stacker**: Proven meta-model.
+  - **Training time**: ~12 hours.
+
+> [!CAUTION]
+> **V19 Excalibur: The Transformation Failure**
+> - **Score**: `0.38415` (Major Regression!) | **OOF RMSE**: `0.23428` | **R2**: `0.0372`
+> - **What was tried**:
+>   - **Logit Target Transformation**: `log(y / (1-y))` to map target to unbounded space, then sigmoid back. This distorted the optimization landscape and introduced systematic bias in the predictions.
+>   - **Pseudo-Labeling**: Used V18's test predictions as "soft labels" to augment training data. This created confirmation bias — the models learned to replicate V18's errors rather than discovering new signal.
+>   - **60-Fold CV** (3 repeats × 20 folds): Did not compensate for the above failures.
+> - **Critical Lesson**: For this specific metric, **raw target prediction on the original scale is essential**. Any transformation of the target or injection of noisy pseudo-labels degrades explained variance tracking. The winning formula remains: diverse raw-target models + Huber stacking.
+
