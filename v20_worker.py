@@ -275,8 +275,10 @@ def get_hgb_trainer(p):
 
 # ─── Full Model Registry ──────────────────────────────
 lgb_base = {'metric':'rmse','n_jobs':-1,'verbose':-1}
-cat_base = dict(iterations=5000,l2_leaf_reg=3.0,min_data_in_leaf=15,subsample=0.8,
-                colsample_bylevel=0.7,task_type='CPU',verbose=0,eval_metric='RMSE',early_stopping_rounds=150)
+# cat_base = dict(iterations=5000,l2_leaf_reg=3.0,min_data_in_leaf=15,subsample=0.8,
+#                 colsample_bylevel=0.7,task_type='CPU',verbose=0,eval_metric='RMSE',early_stopping_rounds=150)
+cat_base = dict(iterations=5000, l2_leaf_reg=3.0, min_data_in_leaf=15,
+                task_type='GPU', verbose=0, eval_metric='RMSE', early_stopping_rounds=150)
 
 ALL_MODEL_CONFIGS = {
     # HGB
