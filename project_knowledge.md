@@ -1,5 +1,5 @@
 # ML Opsidian Genesis: Flood Risk Prediction
-**Current Best Leaderboard Score:** `0.38149` (V18 Titan)
+**Current Best Leaderboard Score:** `0.38130` (The Final Geo-Blend)
 
 ## 1. Problem Statement
 Cyclone events and rapid environmental changes frequently turn normal situations into severe flood disasters in Sri Lanka. Despite having historical records, this data is rarely used to compute actionable long-term risk intelligence for habitability. 
@@ -96,4 +96,21 @@ Through rigorous testing, we found that exactly **115 features** is the sweet sp
 >   - **Pseudo-Labeling**: Used V18's test predictions as "soft labels" to augment training data. This created confirmation bias — the models learned to replicate V18's errors rather than discovering new signal.
 >   - **60-Fold CV** (3 repeats × 20 folds): Did not compensate for the above failures.
 > - **Critical Lesson**: For this specific metric, **raw target prediction on the original scale is essential**. Any transformation of the target or injection of noisy pseudo-labels degrades explained variance tracking. The winning formula remains: diverse raw-target models + Huber stacking.
+
+### V20 Colossus: The Multi-GPU Swarm
+- **Score**: `0.38139` (Current Champion - 50/50 blend with V18) | **OOF RMSE**: `0.23197` | **R2**: `0.0561`
+- **Insights**: Reverted to V18's raw-target approach but pushed scale to an absolute extreme.
+  - **100-Fold CV**: 5 repeats × 20 folds. Squeezed every drop of signal out of the data.
+  - **10 Seeds per Config**: Annihilated random initialization variance.
+  - **Multi-GPU Parallelism**: The training was distributed across 3 separate machines simultaneously (Ubuntu VM, RTX 4070, GTX 3060) to meet the deadline.
+  - **The OOF Paradox Confirmed Again**: Early in training, when only HGB models were finished, OOF RMSE dropped to `0.23287` but LB was `0.38327`. Only after the GPU machines injected Deep CatBoost trees (depths 6, 8, 10) into the stack did the LB score shatter the plateau and reach `0.38139`.
+
+### The Final Geo-Blend (The Ultimate Submission)
+- **Score**: `0.38130` (The Absolute Champion)
+- **Insights**: In the final 30 minutes of the competition, we fused the three historical champion architectures together:
+  1. **V17 Genesis** (`0.38163`) - The 20-fold meta-ensemble pioneer.
+  2. **V18 Titan** (`0.38149`) - The massive 36-model, 3-seed scale champion.
+  3. **V20 Colossus** (`0.38225` standalone, but vastly superior OOF metrics) - The 100-fold multi-GPU swarm.
+- **The Technique**: Instead of a simple weighted average, we used a **Geometric Mean** `(V17 * V18 * V20) ^ (1/3)`. 
+- **Why it Won**: The Geometric Mean mathematically penalizes extreme spikes more harshly than an arithmetic mean. Because the three models learned fundamentally distinct signals across the competition, the geometric blend cleanly squashed their respective outliers while perfectly preserving their underlying variance tracking, completely maximizing the "Balanced Error Assessment" metric.
 

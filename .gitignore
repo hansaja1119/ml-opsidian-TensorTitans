@@ -4,3 +4,5 @@ catboost_info
 
 excalibur_checkpoints
 colossus_checkpoints
+
+worker_checkpoints*
