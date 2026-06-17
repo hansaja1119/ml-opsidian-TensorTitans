@@ -4,5 +4,12 @@ catboost_info
 
 excalibur_checkpoints
 colossus_checkpoints
-
+titan_checkpoints
 worker_checkpoints*
+
+__pycache__
+.next
+node_modules
+
+*.joblib
+mlops/artifacts/

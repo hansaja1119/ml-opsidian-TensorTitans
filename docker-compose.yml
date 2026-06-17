@@ -1,0 +1,73 @@
+version: "3.9"
+
+services:
+  # ─── PostgreSQL Database ────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: floodsim-db
+    environment:
+      POSTGRES_DB: floodsim_db
+      POSTGRES_USER: floodsim
+      POSTGRES_PASSWORD: floodsim_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U floodsim -d floodsim_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── MLflow Tracking Server ─────────────────────────
+  mlflow:
+    image: python:3.11-slim
+    container_name: floodsim-mlflow
+    command: >
+      bash -c "pip install mlflow psycopg2-binary &&
+               mlflow server
+               --host 0.0.0.0
+               --port 5000
+               --backend-store-uri postgresql://floodsim:floodsim_password@db:5432/floodsim_db
+               --default-artifact-root /mlflow-artifacts"
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_artifacts:/mlflow-artifacts
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ─── FastAPI Backend ────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: floodsim-api
+    environment:
+      DATABASE_URL: postgresql://floodsim:floodsim_password@db:5432/floodsim_db
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── Next.js Frontend ──────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: floodsim-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  mlflow_artifacts:
