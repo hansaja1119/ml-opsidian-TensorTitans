@@ -5,30 +5,32 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-floodsim_db}
       POSTGRES_USER: ${POSTGRES_USER:-floodsim}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-before-deploy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
     volumes:
       - pgdata_prod:/var/lib/postgresql/data
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-floodsim} -d ${POSTGRES_DB:-floodsim_db}",
-        ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-floodsim} -d ${POSTGRES_DB:-floodsim_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
 
   mlflow:
-    image: python:3.11-slim
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
     container_name: floodsim-mlflow-prod
-    command: >
-      bash -c "pip install --no-cache-dir mlflow psycopg2-binary &&
-               mlflow server
-               --host 0.0.0.0
-               --port 5000
-               --backend-store-uri postgresql://${POSTGRES_USER:-floodsim}:${POSTGRES_PASSWORD:-change-me-before-deploy}@db:5432/${POSTGRES_DB:-floodsim_db}
-               --default-artifact-root /mlflow-artifacts"
+    command:
+      - mlflow
+      - server
+      - --host
+      - 0.0.0.0
+      - --port
+      - "5000"
+      - --backend-store-uri
+      - "postgresql://${POSTGRES_USER:-floodsim}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@db:5432/${POSTGRES_DB:-floodsim_db}"
+      - --default-artifact-root
+      - /mlflow-artifacts
     volumes:
       - mlflow_artifacts_prod:/mlflow-artifacts
     depends_on:
@@ -42,7 +44,7 @@ services:
       dockerfile: Dockerfile.api
     container_name: floodsim-api-prod
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-floodsim}:${POSTGRES_PASSWORD:-change-me-before-deploy}@db:5432/${POSTGRES_DB:-floodsim_db}
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-floodsim}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@db:5432/${POSTGRES_DB:-floodsim_db}"
       MLFLOW_TRACKING_URI: http://mlflow:5000
     ports:
       - "127.0.0.1:8000:8000"
@@ -56,10 +58,10 @@ services:
       context: .
       dockerfile: Dockerfile.frontend
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://<DROPLET_IP>}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL must be set}
     container_name: floodsim-frontend-prod
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://<DROPLET_IP>}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL must be set}
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:
