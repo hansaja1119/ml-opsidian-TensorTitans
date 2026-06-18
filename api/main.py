@@ -22,7 +22,9 @@ from api.schemas import (
     InterventionPlannerResponse, InterventionItem, SensitivityItem,
     ScenarioComparisonRequest, ScenarioComparisonResponse, ScenarioResult, FeatureDelta,
     DistrictOverviewResponse, DistrictRiskItem,
+    OptimizePlanRequest, OptimizePlanResponse,
 )
+from api.counterfactual_planner import generate_counterfactual_plan
 from api.model_manager import model_manager
 from api.feature_engine import get_risk_level
 from api.database import init_db, get_db
@@ -67,8 +69,9 @@ app = FastAPI(
     title="Flood Risk Simulation API",
     description=(
         "Urban Planning Simulation Tool for predicting flood risk scores "
-        "across Sri Lankan districts. Powered by champion ML ensemble models "
-        "from the ML Opsidian Genesis competition."
+        "and generating counterfactual flood mitigation plans across Sri "
+        "Lankan districts. Powered by champion ML ensemble models from the "
+        "ML Opsidian Genesis competition."
     ),
     version="1.0.0",
     lifespan=lifespan,
@@ -335,6 +338,37 @@ def _build_raw_features(district: str, overrides: dict) -> dict:
         if v is not None:
             raw[k] = v
     return raw
+
+
+@app.post("/api/optimize-plan", response_model=OptimizePlanResponse)
+async def optimize_plan(request: OptimizePlanRequest) -> OptimizePlanResponse:
+    """Generate an AI-assisted counterfactual flood mitigation plan.
+
+    The planner starts from district defaults and uses the existing prediction
+    model as a black-box scorer. It returns a bounded sequence of actionable
+    changes without logging the search as normal simulation traffic.
+    """
+    try:
+        result = generate_counterfactual_plan(
+            district=request.district.value,
+            model_version=request.model_version.value,
+            target_risk_level=request.target_risk_level,
+            max_steps=request.max_steps,
+            budget_profile=request.budget_profile,
+            allowed_features=request.allowed_features,
+        )
+        return OptimizePlanResponse(**result)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unable to optimize plan: {exc}",
+        ) from exc
+    except Exception as exc:
+        logger.exception("Counterfactual plan generation failed")
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to generate a counterfactual mitigation plan.",
+        ) from exc
 
 
 @app.get("/api/interventions", response_model=InterventionPlannerResponse)

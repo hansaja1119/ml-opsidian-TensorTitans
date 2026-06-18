@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Waves, Zap, BarChart3, Lightbulb, GitCompareArrows, MapPinned } from 'lucide-react';
+import { Waves, Zap, BarChart3, Lightbulb, GitCompareArrows, MapPinned, BrainCircuit } from 'lucide-react';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -26,6 +26,11 @@ export default function Navbar() {
           <li>
             <Link href="/interventions" className={pathname === '/interventions' ? 'active' : ''}>
               <Lightbulb size={16} /> Interventions
+            </Link>
+          </li>
+          <li>
+            <Link href="/optimize" className={pathname === '/optimize' ? 'active' : ''}>
+              <BrainCircuit size={16} /> AI Planner
             </Link>
           </li>
           <li>
